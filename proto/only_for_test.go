@@ -1,0 +1,271 @@
+/*
+Copyright 2026 Richard Kosegi
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package proto
+
+import (
+	"encoding/hex"
+	"encoding/json"
+	"strings"
+	"testing"
+	"unicode"
+)
+
+const (
+	clientNonce34  = "0123456789abcdef"
+	deviceNonce34  = "bf037512450b192f"
+	deviceNonce342 = "209c22f11cec025a"
+
+	// DpQuery from app (controller) to device
+	packet31Query = `
+000055aa000000000000000a00000058
+696d56b23ad8782e405a19a7aba08607
+74eaf9e77bb6f815e643ae6b40c86f8e
+7fa70309e6b05b5764e7fd4f85d99c60
+0256b31fd00fd95048d915a2059b1312
+98abeab88f5f337647fe0f520fed2bc9
+712c05f90000aa55
+`
+
+	// DpQuery response from device to controller
+	packet31DpResp = `
+000055aa000000000000000a0000008c
+00000000a6ef030100d6c0aef70a8fcc
+ec8e1b35c7b8813e82d9446ddc2be234
+1999e08802d3c563b2f956f02cc19953
+8d23ddc1caba7d2b5869acfc5b4455c1
+e52e5805bea99a51cc8335f5a6b0546d
+a3519c5040e3be6103133c80e15c7ef8
+56498492cbc75c2d1f6beb4c34fcd07e
+87556c7bdf6c96b5577350a5580ac448
+0a7c59d0153bb9910000aa55`
+
+	// DpQuery response from device to controller
+	packet31DpResp2 = `
+000055aa000000000000000a0000007c
+0000000035024527fc127ac9a20e019d
+86f30f15885037a6315991ba88f63fef
+09a58f759c8c9880cd782275687b536d
+511510b1347275c031e1d3674b2b0509
+28eeaaaf5f955d964842518c0ec98eff
+c393c7ad60e8047c0744c69f2ea75cf2
+facf9ed224e99724f19fb3f66895c235
+d7e518154fd8f2a20000aa55
+`
+	packet31Bad1 = `000055aa0000`
+
+	packet34_1 = `
+000055aa000000010000000300000044
+f39335fe9ccf3a98ed2a0303415ce804
+7e444aae92aed2dac516e27a0550dd62
+85f02a8a9d34af466a8255d43e4e1de8
+bdf12d78488599f8dadadc763e7fdf5c
+0000aa55`
+
+	packet34_2 = `
+000055aa0000fa4c0000000400000068
+00000000ee27acad8367f18caa9971e7
+aed6b12e7c0f6e9199e7cd9c09a5c63e
+2ca248c6766982452bbea1a2207d7e94
+3e400b447e444aae92aed2dac516e27a
+0550dd6206e7bb14f79d40c260f070e8
+f6f56dc75b7948a240c92fa701ae01dd
+2f74ba7e0000aa55`
+
+	packet34_3 = `
+000055aa000000020000000500000054
+617fa3e229725da502bf452734d76779
+414be06b3d4152d556f1c223480133b0
+7e444aae92aed2dac516e27a0550dd62
+427e80a282d54efdfed747ca9164fd5b
+8f1612e9ded8d576e7c9d38e1b012a49
+0000aa55`
+
+	// 3.4 dp query from app to device
+	packet34_4 = `
+000055aa000000030000001000000034
+b27b74780d5b18f62cf145b4251deaa8
+a4c7cebc4ac4cd1fc0b0bfead1a79284
+878e8d93c9aa01d65b9e731b497c91b3
+0000aa55
+`
+	// 3.4 dp query status response from device to app
+	packet34_5 = `
+000055aa0000fa4d00000010000000d8
+00000000821f5a0faf65b804274ca78b
+e8738bee4e2c72045eb83f6dabcfbc8b
+18a27cd22e3b72187c865e0ee46d95ac
+218672682227dd94d489a23ceda39858
+228f1d83531720cb5b9eb48b2b73ef50
+56cfec360e01b4e8e9133ad283dfa97c
+c9bdc3c281b198b7b669c5f0a899da87
+16018c721fd72494d209356ddea015c5
+1d24b1526b38b90fbe1f20d3c9e32792
+6d0fcf23b0da10ab7c589b225365ddd4
+ef05784e11ac8bef2dd5885aa3c2e0da
+c612d823b44d8f17a9c4ba94a00e15af
+c097947501383444315c0cc1db91b001
+495869220000aa55`
+
+	// good size, but missing footer
+	packet_bad31_2 = `
+000055aa000000000000000a0000007c
+0000000035024527fc127ac9a20e019d
+86f30f15885037a6315991ba88f63fef
+09a58f759c8c9880cd782275687b536d
+511510b1347275c031e1d3674b2b0509
+28eeaaaf5f955d964842518c0ec98eff
+c393c7ad60e8047c0744c69f2ea75cf2
+facf9ed224e99724f19fb3f66895c235
+d7e518154fd8f2a200000000
+`
+
+	// bad size, incomplete packet
+	packet34_bad = `
+000055aa0000fa4d00000010000000d8
+00000000821f5a0faf65b804274ca78b
+`
+	// missing header
+	packet_bad31_3 = `
+00000000000000000000000a0000007c
+0000000035024527fc127ac9a20e019d
+86f30f15885037a6315991ba88f63fef
+09a58f759c8c9880cd782275687b536d
+511510b1347275c031e1d3674b2b0509
+28eeaaaf5f955d964842518c0ec98eff
+c393c7ad60e8047c0744c69f2ea75cf2
+facf9ed224e99724f19fb3f66895c235
+d7e518154fd8f2a20000aa55
+`
+	packet_bad35_1 = `
+000066990000`
+
+	// udp discovery response
+	pkt_bcast_34 = `
+000055aa0000000000000023000000bc
+00000000d09766676f3369eb10b5e9f1
+32fd802a2b8ecdb83424f7a6884b011d
+664ccd46eb00d00863ef3e4e2a06eae3
+f57b018cca322d15a3365719ab56ad0e
+3b4b29067256f992ef0bb3c9946f6ca8
+e2e148532e0dbc9a92c3317286ebf238
+be5797863e4a9d43c5263de269048b7c
+4f281c335cca9cf243b333079bed2b12
+b16ffb346fbdac3e9dd4c59ed6077a37
+13a1f534c5f75cc69c6a0e153160a17b
+c40acc9bf710aae30275845704b34769
+a7f2181a8d9f34800000aa55`
+
+	pkt_bcast_33 = `
+000055aa00000000000000130000009c
+00000000d09766676f3369eb10b5e9f1
+32fd802aec706a5a12250180979d960c
+1d67b1f7477a80baeebf1819f050efde
+c4b118da7f045939c571bf14f486bd7a
+2df22af359bd59981c26d5958da187e0
+96d937c840b1058c6d8cd9456f3f7e28
+eed4932b24ce475ef94c0e71baa74939
+a56162db55dd3444d6199d4cf180d10b
+460afda38494c932e298de410f638ed8
+bf10587a88683a8d0000aa55`
+
+	// broadcast from app
+	packet3_2 = `
+00006699000000000000000000250000
+003f1fc5df4ac42b0ad4f8f02668bffb
+35425a7cb86f8b648a817ed8239167c7
+32f48f2e12197f49f8983f62020e0fc3
+8066533055e1234992c9ce74aa1a7869
+3200009966`
+
+	// broadcast from app (tinytuya)
+	packet3_3 = `
+00006699000000000000000000250000
+00423031323334353637383961627f0e
+835e0dc9a2e1b1a68b022089f5223d6e
+8436b8a89f183d41afa162fc03de170b
+d2ae3c2885ed5008be9b0c3faa9005eb
+85815b7700009966
+`
+
+	packet34SessNegStart = `
+000055aa000000010000000300000044
+a15eef13866624c14fef61060a7a1801
+2c1289aedc5156c05124e517808812da
+31a7bfc42b7024718ef75f804f7659ad
+70687356b33eb52264d54db11e84de37
+0000aa55
+`
+	packet34SessNegResult = `
+000055aa0000db9d0000000400000068
+000000000525830e9cb6aafa2be99c3b
+d746d52f28dedfaaebdfba48562672f9
+a47d4a6836ad3efbf1145d94eff87ce2
+3dc7458d2c1289aedc5156c05124e517
+808812da778218cc953fda4ec9eb7f9f
+e5daf961e2d041e22760f656e4303c6f
+86234c0d0000aa55`
+
+	packet34SessNegFinish = `
+000055aa000000020000000500000054
+1116e2932f70c7112f84a3afb9cdcc1e
+ecb741890b8893d5a3e7a093460eda6e
+2c1289aedc5156c05124e517808812da
+d8dd0a2b9565b509b2dc332e8a9a8bfa
+421c7974033418e3cfbd746e6d33bfa8
+0000aa55
+`
+)
+
+var (
+	key1   = []byte("de77b1bf13fed845")
+	key3   = []byte("0a5ce86679fb0654")
+	key2   = []byte("68dc11d48cd9fdc4")
+	keyV34 = []byte(".l]ga7r95i(PH(Wg")
+	key342 = []byte("CZ+uzW*zGQYk047`")
+)
+
+func mustFromHex(s string, t *testing.T) []byte {
+	s = strings.Map(func(r rune) rune {
+		if unicode.IsSpace(r) {
+			return -1
+		}
+		return r
+	}, s)
+	b, err := hex.DecodeString(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("\n" + hex.Dump(b))
+	return b
+}
+
+func mustDecodeJson(data []byte) map[string]interface{} {
+	var m map[string]interface{}
+	if err := json.Unmarshal(data, &m); err != nil {
+		panic(err)
+	}
+	return m
+}
+
+func resetPkt(pkt *Packet) {
+	pkt.DecryptedPayload = nil
+	pkt.EncryptedPayload = nil
+	pkt.ReturnCode = 0
+	pkt.DeviceOriginated = false
+	pkt.DataLength = 0
+	pkt.bufferPos = 0
+}
