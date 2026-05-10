@@ -271,7 +271,7 @@ func TestFullExchange34WithBuilder(t *testing.T) {
 		})
 		t.Run("ControlNew request from app", func(t *testing.T) {
 			var key []byte
-			key, err = makeSessionKey([]byte(clientNonce34), []byte(deviceNonce342), key342)
+			key, err = mb.MakeSessionKey([]byte(clientNonce34), []byte(deviceNonce342), key342)
 			assert.NoError(t, pkt.Decode(mustFromHex(`000055aa000000030000000d00000074d2a0b5ff83447e220fae83e2e47869aa114d22ee0865c6731f8a025ac1d43920dfc0c602ed120ca494cfd1f97aa7e18e700b48d4090d14298bfec29f3b8a857befee391594295c460526789d67b3e16c46b9a01a70a737198f49ac7d39ea22b6abc7dacb44a9255c83cbff837f8763100000aa55`, t), key))
 			assert.Equal(t, CmdIdTypeControlNew, pkt.CmdId)
 
@@ -282,7 +282,7 @@ func TestFullExchange34WithBuilder(t *testing.T) {
 		})
 		t.Run("Status response from device", func(t *testing.T) {
 			var key []byte
-			key, err = makeSessionKey([]byte(clientNonce34), []byte(deviceNonce342), key342)
+			key, err = mb.MakeSessionKey([]byte(clientNonce34), []byte(deviceNonce342), key342)
 			assert.NoError(t, pkt.Decode(mustFromHex(`000055aa0000db9e000000080000007800000000dd6fb2a0071202a3e744bafdbc52333bdd693dae44761c4db2f6792409b35d7736f000fdd1dbecf8ee5561496261b9aa770c06af1e75c229aae006d5663b95f540db94576dfc47114336e79652186a7915b97c8a779835ad9515033b22ac95077bad94791958a12a1ce690de891c8cf60000aa55`, t), key))
 			assert.Equal(t, CmdIdTypeStatus, pkt.CmdId)
 			assert.True(t, pkt.DeviceOriginated)
@@ -295,7 +295,7 @@ func TestFullExchange34WithBuilder(t *testing.T) {
 		t.Run("ControlNew ACK from device", func(t *testing.T) {
 			resetPkt(pkt)
 			var key []byte
-			key, err = makeSessionKey([]byte(clientNonce34), []byte(deviceNonce342), key342)
+			key, err = mb.MakeSessionKey([]byte(clientNonce34), []byte(deviceNonce342), key342)
 			assert.NoError(t, pkt.Decode(mustFromHex(`000055aa0000db9f0000000d00000028000000002be21c9af40ac7bb04677e3c4489dc66f127cef377619d0ccb66a5a525177e450000aa55`, t), key))
 			assert.Equal(t, CmdIdTypeControlNew, pkt.CmdId)
 			assert.True(t, pkt.DeviceOriginated)

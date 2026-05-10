@@ -65,6 +65,9 @@ type MessageBuilder34 interface {
 
 	// SessKeyNegFinish Session key negotiation finish (step3) is sent by app/client.
 	SessKeyNegFinish(localKey, deviceNonce []byte, seqNo uint32) (*Packet, error)
+
+	// MakeSessionKey makes a session key using negotiated parameters
+	MakeSessionKey(clientNonce, deviceNonce, localKey []byte) ([]byte, error)
 }
 
 func (m *messageBuilder) SessKeyNegStart(localKey, localNonce []byte, seqNo uint32) (*Packet, error) {
@@ -94,6 +97,10 @@ func (m *messageBuilder) SessKeyNegFinish(localKey, deviceNonce []byte, seqNo ui
 		return nil, fmt.Errorf("invalid device nonce length: %d, should be %d", len(deviceNonce), nonceLen)
 	}
 	return m.create(localKey, hmacSha256(localKey, deviceNonce), seqNo, CmdIdTypeSessKeyNegFinish)
+}
+
+func (m *messageBuilder) MakeSessionKey(clientNonce, deviceNonce, localKey []byte) ([]byte, error) {
+	return makeSessionKey(clientNonce, deviceNonce, localKey)
 }
 
 func (m *messageBuilder) createAny(localKey []byte, payload any, seqNo uint32, cmdId CmdIdType, customizeFns ...MessageCustomizer) (*Packet, error) {
