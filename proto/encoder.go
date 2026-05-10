@@ -149,5 +149,6 @@ func (p *Packet) Encode(key []byte) ([]byte, error) {
 	enc.writeDataFn(&buff, p)
 	enc.writeChecksumFn(&buff, p, key)
 	enc.writeFooterFn(&buff, p)
-	return buff.Bytes(), err
+	p.encodedBuffer = buff.Bytes()
+	return p.encodedBuffer, err
 }

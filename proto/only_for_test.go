@@ -264,6 +264,7 @@ func mustDecodeJson(data []byte) map[string]interface{} {
 func resetPkt(pkt *Packet) {
 	pkt.DecryptedPayload = nil
 	pkt.EncryptedPayload = nil
+	pkt.encodedBuffer = nil
 	pkt.ReturnCode = 0
 	pkt.DeviceOriginated = false
 	pkt.DataLength = 0

@@ -17,6 +17,7 @@ limitations under the License.
 package proto
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"strings"
@@ -151,6 +152,13 @@ type Packet struct {
 
 	// buffer position, used only for debugging
 	bufferPos int
+
+	encodedBuffer []byte
+}
+
+// Encoded makes a copy of lastly encoded buffer content.
+func (p *Packet) Encoded() []byte {
+	return bytes.Clone(p.encodedBuffer)
 }
 
 func (v Version) String() string {

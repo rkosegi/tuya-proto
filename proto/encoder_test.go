@@ -81,21 +81,18 @@ func TestEncodeMessageBuilder(t *testing.T) {
 				uint32(0), CmdIdTypeDpQuery)
 			assert.NoError(t, err)
 			assert.NotNil(t, pkt)
-			data, err = pkt.Encode(key1)
-			assert.NoError(t, err)
+			data = pkt.Encoded()
 			assert.NotNil(t, data)
 			assert.Equal(t, mustFromHex(packet31Query, t), data)
 		})
 		t.Run("DpQuery response from device", func(t *testing.T) {
-			pkt, err = mb.ResponseAny(key1, `{"dps":{"1":true,"9":0,"18":131,"19":155,"20":2357,"26":0,"38":`+
+			pkt, err = mb.ResponseAny(key2, `{"dps":{"1":true,"9":0,"18":131,"19":155,"20":2357,"26":0,"38":`+
 				`"memory","39":"relay","40":false,"41":"","42":""}}`, uint32(0), CmdIdTypeDpQuery)
 			assert.NoError(t, err)
 			assert.NotNil(t, pkt)
-			data, err = pkt.Encode(key2)
-			assert.NoError(t, err)
+			data = pkt.Encoded()
 			assert.NotNil(t, data)
 			assert.Equal(t, mustFromHex(packet31DpResp, t), data)
-
 		})
 	})
 	t.Run("3.4", func(t *testing.T) {
@@ -110,25 +107,23 @@ func TestEncodeMessageBuilder(t *testing.T) {
 			pkt, err = mb.SessKeyNegStart(keyV34, []byte(clientNonce34), 1)
 			assert.NoError(t, err)
 			assert.NotNil(t, pkt)
-			data, err = pkt.Encode(keyV34)
-			assert.NoError(t, err)
+			data = pkt.Encoded()
 			assert.NotNil(t, data)
 			t.Log("\n" + hex.Dump(data))
 		})
 
 		t.Run("neg session result", func(t *testing.T) {
 			pkt, err = mb.SessKeyNegResult(keyV34, []byte(deviceNonce34), []byte(clientNonce34), 64076)
+			assert.NoError(t, err)
 			assert.Equal(t, []byte(deviceNonce34), pkt.DecryptedPayload[:nonceLen])
 			assert.Equal(t, uint32(64076), pkt.SeqNo)
-			data, err = pkt.Encode(keyV34)
-			assert.NoError(t, err)
+			data = pkt.Encoded()
 			assert.NotNil(t, data)
 			t.Log("\n" + hex.Dump(data))
 		})
 
 		t.Run("neg session finish", func(t *testing.T) {
 			pkt, err = mb.SessKeyNegFinish(keyV34, []byte(deviceNonce34), 2)
-			data, err = pkt.Encode(keyV34)
 			assert.NoError(t, err)
 			assert.NotNil(t, data)
 			assert.Equal(t, uint32(0x54), pkt.DataLength)
