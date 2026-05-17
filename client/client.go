@@ -114,7 +114,12 @@ func (c *clientImpl) Read(dest any) (err error) {
 	if err = c.readPacket(&pkt); err != nil {
 		return err
 	}
-	c.l.Debug("payload decoded", "payload", string(pkt.DecryptedPayload))
+	payload := string(pkt.DecryptedPayload)
+	c.l.Debug("payload decoded", "cmdId", pkt.CmdId, "payload", payload)
+	if len(payload) == 0 {
+		// return immediately, since there will be EOF error
+		return nil
+	}
 	return pkt.GetJsonPayload(dest)
 }
 
