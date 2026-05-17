@@ -102,6 +102,7 @@ func (c *clientImpl) Send(cmd proto.CmdIdType, obj any) error {
 	} else {
 		pkt.SetJsonPayload(obj)
 	}
+	c.l.Debug("payload to send", "cmdId", pkt.CmdId, "payload", string(pkt.DecryptedPayload))
 	_, err := pkt.Encode(c.key)
 	if err != nil {
 		return err
