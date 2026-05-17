@@ -38,3 +38,26 @@ type DpsMap map[string]interface{}
 type DpsWrapper struct {
 	DpsMap DpsMap `json:"dps"`
 }
+
+type DpsPowerPlug struct {
+	SwitchOn bool `json:"1"`
+	Current  int  `json:"18"`
+	Power    int  `json:"19"`
+	Voltage  int  `json:"20"`
+}
+
+type DpQueryResponse struct {
+	Dps DpsMap `json:"dps"`
+}
+
+type DpQueryRequest struct {
+	GwId  string `json:"gwId,omitempty"`
+	DevId string `json:"devId,omitempty"`
+}
+
+type ProtoStats struct {
+	ReadPkts int64
+	ReadErrs int64
+	SentPkts int64
+	SentErrs int64
+}
