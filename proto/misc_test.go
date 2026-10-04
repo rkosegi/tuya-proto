@@ -25,7 +25,7 @@ import (
 func TestSetJsonPayload(t *testing.T) {
 	var pkt *Packet
 	pkt = &Packet{}
-	pkt.SetJsonPayload(map[string]interface{}{})
+	pkt.SetJsonPayload(map[string]any{})
 	assert.NotNil(t, pkt.DecryptedPayload)
 	assert.Equal(t, "{}", string(pkt.DecryptedPayload))
 }
@@ -33,7 +33,7 @@ func TestSetJsonPayload(t *testing.T) {
 func TestGetJsonPayload(t *testing.T) {
 	var (
 		pkt *Packet
-		m   map[string]interface{}
+		m   map[string]any
 		err error
 	)
 	pkt = &Packet{}
@@ -54,21 +54,26 @@ func TestMakeSessionKey(t *testing.T) {
 	)
 	t.Run("invalid", func(t *testing.T) {
 		t.Run("local nonce length", func(t *testing.T) {
-			_, err = makeSessionKey([]byte("abcdefgh"), []byte(deviceNonce34), keyV34)
+			_, err = makeSessionKey([]byte("abcdefgh"), []byte(deviceNonce34), keyV34, encSessionKeyPre35)
 			assert.Error(t, err)
 		})
 		t.Run("local key length", func(t *testing.T) {
-			_, err = makeSessionKey([]byte(clientNonce34), []byte(deviceNonce34), []byte("A"))
+			_, err = makeSessionKey([]byte(clientNonce34), []byte(deviceNonce34), []byte("A"), encSessionKeyPre35)
 			assert.Error(t, err)
 		})
 		t.Run("remote nonce length", func(t *testing.T) {
-			_, err = makeSessionKey([]byte(clientNonce34), []byte("123"), keyV34)
+			_, err = makeSessionKey([]byte(clientNonce34), []byte("123"), keyV34, encSessionKeyPre35)
 			assert.Error(t, err)
 		})
 	})
-	t.Run("valid", func(t *testing.T) {
-		out, err = makeSessionKey([]byte(clientNonce34), []byte(deviceNonce34), keyV34)
+	t.Run("valid 3.4", func(t *testing.T) {
+		out, err = makeSessionKey([]byte(clientNonce34), []byte(deviceNonce34), keyV34, encSessionKeyPre35)
 		assert.NoError(t, err)
-		assert.Equal(t, mustFromHex("aa9654767072bab3de272b4ae5fde9cc", t), out)
+		assert.Equal(t, mustFromHex("aa9654767072bab3de272b4ae5fde9cc"), out)
+	})
+	t.Run("valid 3.5", func(t *testing.T) {
+		out, err = makeSessionKey(tuyapi35ClNonce, tuyapi35DevNonce, key351, encSessionKey35)
+		assert.NoError(t, err)
+		assert.Equal(t, tuyapiSessKey, out)
 	})
 }

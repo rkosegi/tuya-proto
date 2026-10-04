@@ -40,6 +40,10 @@ func (p *Packet) GetJsonPayload(payload any) error {
 	if bytes.Index(p.DecryptedPayload, []byte(p.Version.String())) == 0 {
 		data = data[15:]
 	}
+	// trim return code if present in payload sent by device
+	if p.DeviceOriginated && bytes.Index(p.DecryptedPayload, []byte{0, 0, 0, 0}) == 0 {
+		data = data[uint32Size:]
+	}
 	return json.NewDecoder(bytes.NewBuffer(data)).Decode(payload)
 }
 

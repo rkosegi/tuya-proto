@@ -35,7 +35,7 @@ func TestEncode31(t *testing.T) {
 		pkt = &Packet{Version: Version31}
 		pkt2 = &Packet{Version: Version31}
 
-		pkt.SetJsonPayload(map[string]interface{}{
+		pkt.SetJsonPayload(map[string]any{
 			"gwId":  "bff9a1f18d1a16d1c5ekpd",
 			"devId": "bff9a1f18d1a16d1c5ekpd",
 		})
@@ -60,7 +60,7 @@ func TestEncode31(t *testing.T) {
 		pkt = &Packet{Version: Version31}
 		pkt2 = &Packet{Version: Version31}
 
-		pkt.SetJsonPayload(map[string]interface{}{})
+		pkt.SetJsonPayload(map[string]any{})
 		pkt.CmdId = CmdIdTypeDpQuery
 		data, err = pkt.Encode([]byte("a"))
 		assert.Error(t, err)
@@ -83,7 +83,7 @@ func TestEncodeMessageBuilder(t *testing.T) {
 			assert.NotNil(t, pkt)
 			data = pkt.Encoded()
 			assert.NotNil(t, data)
-			assert.Equal(t, mustFromHex(packet31Query, t), data)
+			assert.Equal(t, mustFromHex(packet31Query), data)
 		})
 		t.Run("DpQuery response from device", func(t *testing.T) {
 			pkt, err = mb.ResponseAny(key2, `{"dps":{"1":true,"9":0,"18":131,"19":155,"20":2357,"26":0,"38":`+
@@ -92,7 +92,7 @@ func TestEncodeMessageBuilder(t *testing.T) {
 			assert.NotNil(t, pkt)
 			data = pkt.Encoded()
 			assert.NotNil(t, data)
-			assert.Equal(t, mustFromHex(packet31DpResp, t), data)
+			assert.Equal(t, mustFromHex(packet31DpResp), data)
 		})
 	})
 	t.Run("3.4", func(t *testing.T) {
@@ -115,7 +115,7 @@ func TestEncodeMessageBuilder(t *testing.T) {
 		t.Run("neg session result", func(t *testing.T) {
 			pkt, err = mb.SessKeyNegResult(keyV34, []byte(deviceNonce34), []byte(clientNonce34), 64076)
 			assert.NoError(t, err)
-			assert.Equal(t, []byte(deviceNonce34), pkt.DecryptedPayload[:nonceLen])
+			assert.Equal(t, []byte(deviceNonce34), pkt.DecryptedPayload[:NonceLen])
 			assert.Equal(t, uint32(64076), pkt.SeqNo)
 			data = pkt.Encoded()
 			assert.NotNil(t, data)
@@ -145,7 +145,8 @@ func TestEncode35(t *testing.T) {
 		data []byte
 	)
 	pkt = &Packet{Version: Version35}
-	pkt.SetJsonPayload(map[string]interface{}{})
+	pkt.SetJsonPayload(map[string]any{})
+	pkt.IV = []byte("0123456789ab")
 	data, err = pkt.Encode(UdpKey())
 	assert.NoError(t, err)
 	assert.NotNil(t, data)

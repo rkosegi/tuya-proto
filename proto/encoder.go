@@ -43,8 +43,31 @@ func writeHeader3134(buff *bytes.Buffer, pkt *Packet) {
 	pkt.writeCommonFields(buff)
 }
 
+func encrypt35(pkt *Packet, key []byte) (err error) {
+
+	if pkt.DeviceOriginated && pkt.CmdId != CmdIdTypeSessKeyNegResult {
+		newData := make([]byte, len(pkt.DecryptedPayload)+uint32Size)
+		binary.LittleEndian.PutUint32(newData, pkt.ReturnCode)
+		copy(newData[uint32Size:], pkt.DecryptedPayload)
+		pkt.DecryptedPayload = newData
+	}
+
+	pkt.DataLength = uint32(len(pkt.DecryptedPayload) + ivLen35 + tagLen35)
+	pkt.AAD = binary.BigEndian.AppendUint16([]byte{}, 0)
+	pkt.AAD = binary.BigEndian.AppendUint32(pkt.AAD, pkt.SeqNo)
+	pkt.AAD = binary.BigEndian.AppendUint32(pkt.AAD, uint32(pkt.CmdId))
+	pkt.AAD = binary.BigEndian.AppendUint32(pkt.AAD, pkt.DataLength)
+
+	if pkt.EncryptedPayload, err = encryptAESGCM(key, pkt.IV, pkt.DecryptedPayload, pkt.AAD); err != nil {
+		return err
+	}
+	pkt.Tag = pkt.EncryptedPayload[len(pkt.EncryptedPayload)-tagLen35:]
+	pkt.EncryptedPayload = pkt.EncryptedPayload[:len(pkt.EncryptedPayload)-tagLen35]
+	return err
+}
+
 func encrypt31(pkt *Packet, key []byte) (err error) {
-	if pkt.EncryptedPayload, err = encryptAESCBC(key, pkt.DecryptedPayload, true); err != nil {
+	if pkt.EncryptedPayload, err = encryptAESECB(key, pkt.DecryptedPayload, true); err != nil {
 		return
 	}
 
@@ -73,6 +96,11 @@ func writeChecksum34(buff *bytes.Buffer, pkt *Packet, key []byte) {
 	pkt.bufferPos += hmac32Len
 }
 
+func writeChecksum35(buff *bytes.Buffer, pkt *Packet, _ []byte) {
+	buff.Write(pkt.Tag)
+	pkt.bufferPos += len(pkt.Tag)
+}
+
 func writeFooter3134(buff *bytes.Buffer, pkt *Packet) {
 	pkt.Footer = Footer31
 	buff.Write(uint32AsBEBytes(pkt.Footer))
@@ -85,6 +113,8 @@ func writeHeader35(buff *bytes.Buffer, pkt *Packet) {
 	buff.Write([]byte{0, 0})
 	pkt.bufferPos += LenHeaderMark + 2
 	pkt.writeCommonFields(buff)
+	buff.Write(pkt.IV)
+	pkt.bufferPos += len(pkt.IV)
 }
 
 func writeFooter35(buff *bytes.Buffer, pkt *Packet) {
@@ -135,8 +165,9 @@ func (p *Packet) Encode(key []byte) ([]byte, error) {
 	case Version35:
 		enc.writeHeaderFn = writeHeader35
 		enc.writeFooterFn = writeFooter35
-		enc.encryptFn = encrypt31
-		enc.writeChecksumFn = writeChecksum31
+		enc.encryptFn = encrypt35
+		enc.writeChecksumFn = writeChecksum35
+
 	default:
 		return nil, fmt.Errorf("unknown version: %d", p.Version)
 	}

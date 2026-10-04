@@ -17,7 +17,9 @@ limitations under the License.
 package client
 
 import (
+	"log/slog"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -32,6 +34,8 @@ var (
 	device31Id   = os.Getenv("DEVICE_31_ID")
 	device34Host = os.Getenv("DEVICE_34_HOST")
 	device34Key  = os.Getenv("DEVICE_34_KEY")
+	device35Host = os.Getenv("DEVICE_35_HOST")
+	device35Key  = os.Getenv("DEVICE_35_KEY")
 )
 
 func TestBlocking31(t *testing.T) {
@@ -75,7 +79,43 @@ func TestBlocking34(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = c.Send(proto.CmdIdTypeDpQueryNew, make(map[string]interface{}))
+	err = c.Send(proto.CmdIdTypeDpQueryNew, make(map[string]any))
+	assert.NoError(t, err)
+
+	var out dto.DpQueryResponse
+	err = c.Read(&out)
+	assert.NoError(t, err)
+
+	t.Log(out)
+
+	assert.NoError(t, c.Close())
+}
+
+func TestBlocking35(t *testing.T) {
+	if device35Host == "" || device35Key == "" {
+		t.Skipf("Protocol v3.5 device is not configured, skipping")
+	}
+	l := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	c := NewBlockingClient(proto.Version35, device35Host, []byte(device35Key),
+		WithLogger(l),
+		WithTimeout(10*time.Second),
+		WithReadTimeout(30*time.Second),
+		WithWriteTimeout(10*time.Second))
+	err := c.Connect()
+	assert.NoError(t, err)
+	assert.NotNil(t, c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// {"gwId":"bf27c19ef5c8278ad83tbh","devId":"bf27c19ef5c8278ad83tbh",`+
+	//			`"t":"1789996938","dps":{},"uid":"bf27c19ef5c8278ad83tbh"}`
+	// obj := map[string]any{}
+	err = c.Send(proto.CmdIdTypeDpQueryNew, &dto.DpQueryRequest{
+		GwId:  "bf27c19ef5c8278ad83tbh",
+		DevId: "bf27c19ef5c8278ad83tbh",
+		Uid:   "bf27c19ef5c8278ad83tbh",
+		Time:  strconv.Itoa(int(time.Now().Unix())),
+	})
 	assert.NoError(t, err)
 
 	var out dto.DpQueryResponse

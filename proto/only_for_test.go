@@ -20,7 +20,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"strings"
-	"testing"
 	"unicode"
 )
 
@@ -236,9 +235,10 @@ var (
 	key2   = []byte("68dc11d48cd9fdc4")
 	keyV34 = []byte(".l]ga7r95i(PH(Wg")
 	key342 = []byte("CZ+uzW*zGQYk047`")
+	key351 = []byte("-E@5k=hmq^Nj5>^=")
 )
 
-func mustFromHex(s string, t *testing.T) []byte {
+func mustFromHex(s string) []byte {
 	s = strings.Map(func(r rune) rune {
 		if unicode.IsSpace(r) {
 			return -1
@@ -247,14 +247,13 @@ func mustFromHex(s string, t *testing.T) []byte {
 	}, s)
 	b, err := hex.DecodeString(s)
 	if err != nil {
-		t.Fatal(err)
+		panic(err)
 	}
-	t.Log("\n" + hex.Dump(b))
 	return b
 }
 
-func mustDecodeJson(data []byte) map[string]interface{} {
-	var m map[string]interface{}
+func mustDecodeJson(data []byte) map[string]any {
+	var m map[string]any
 	if err := json.Unmarshal(data, &m); err != nil {
 		panic(err)
 	}

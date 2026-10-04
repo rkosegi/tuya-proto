@@ -43,7 +43,19 @@ func decryptAESGCM(key, iv, tag, ciphertext, aad []byte) ([]byte, error) {
 	return plaintext, err
 }
 
-func decryptAESCBC(key, encrypted []byte) ([]byte, error) {
+func encryptAESGCM(key, iv, plaintext, aad []byte) ([]byte, error) {
+	cb, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+	gcm, err := cipher.NewGCM(cb)
+	if err != nil {
+		return nil, err
+	}
+	return gcm.Seal(nil, iv, plaintext, aad), nil
+}
+
+func decryptAESECB(key, encrypted []byte) ([]byte, error) {
 	cb, err := aes.NewCipher(key)
 	if err != nil {
 		// KeySizeError
@@ -56,7 +68,7 @@ func decryptAESCBC(key, encrypted []byte) ([]byte, error) {
 	return unpadPKCS7(out), nil
 }
 
-func encryptAESCBC(key, plaintext []byte, padding bool) ([]byte, error) {
+func encryptAESECB(key, plaintext []byte, padding bool) ([]byte, error) {
 	bc, err := aes.NewCipher(key)
 	if err != nil {
 		// KeySizeError
@@ -82,7 +94,20 @@ func unpadPKCS7(text []byte) []byte {
 	return text[:len(text)-int(padding)]
 }
 
-func makeSessionKey(clientNonce, deviceNonce, localKey []byte) ([]byte, error) {
+type encSessionKeyFn func(localKey, xKey, clientNonce []byte) ([]byte, error)
+
+func encSessionKeyPre35(localKey, xKey, _ []byte) ([]byte, error) {
+	return encryptAESECB(localKey, xKey, false)
+}
+
+func encSessionKey35(localKey, xKey, clientNonce []byte) (out []byte, err error) {
+	if out, err = encryptAESGCM(localKey, clientNonce[:12], xKey, nil); err != nil {
+		return out[:16], err
+	}
+	return out[:16], nil
+}
+
+func makeSessionKey(clientNonce, deviceNonce, localKey []byte, encFn encSessionKeyFn) ([]byte, error) {
 	if len(localKey) != aes.BlockSize {
 		return nil, fmt.Errorf("invalid local key size: %d, must be %d", len(localKey), aes.BlockSize)
 	}
@@ -93,8 +118,8 @@ func makeSessionKey(clientNonce, deviceNonce, localKey []byte) ([]byte, error) {
 		return nil, fmt.Errorf("invalid device nonce size: %d, must be %d", len(deviceNonce), aes.BlockSize)
 	}
 	xkey := make([]byte, len(deviceNonce))
-	for i := 0; i < len(deviceNonce); i++ {
+	for i := range deviceNonce {
 		xkey[i] = deviceNonce[i] ^ clientNonce[i]
 	}
-	return encryptAESCBC(localKey, xkey, false)
+	return encFn(localKey, xkey, clientNonce)
 }

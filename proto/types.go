@@ -18,7 +18,6 @@ package proto
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"strings"
 )
@@ -31,12 +30,10 @@ const (
 )
 
 var (
-	footer3134 = []byte{0, 0, 0xaa, 0x55}
-	udpKey     = []byte{
+	udpKey = []byte{
 		0x6c, 0x1e, 0xc8, 0xe2, 0xbb, 0x9b, 0xb5, 0x9a,
 		0xb5, 0x0b, 0x0d, 0xaf, 0x64, 0x9b, 0x41, 0x0a,
 	}
-	ErrMissingFooter3134 = errors.New("can't find packet footer 0x0000aa55 in buffer")
 )
 
 type (
@@ -56,7 +53,7 @@ const (
 	LenCommonFields = 3 * uint32Size
 	ivLen35         = 12
 	tagLen35        = 16
-	nonceLen        = 16
+	NonceLen        = 16
 	hmac32Len       = 32
 	// header(4) + seq(4) + cmd id(4) + len(4) + CRC(4) + footer(4)
 	minLen31 = LenHeaderMark + LenCommonFields + uint32Size + LenFooterMark
