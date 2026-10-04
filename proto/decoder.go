@@ -90,7 +90,6 @@ func (p *Packet) decode3134(data []byte, key []byte) error {
 	}
 	p.bufferPos += LenFooterMark
 
-	// set only when device => client ?
 	p.ReturnCode = binary.BigEndian.Uint32(dataAndChecksum[:uint32Size])
 	if p.ReturnCode&0xFFFFFF00 == 0 {
 		p.DeviceOriginated = true
@@ -122,7 +121,7 @@ func (p *Packet) decrypt31(key []byte) (err error) {
 		buff = buff[uint32Size:]
 	}
 	if len(buff) > 0 {
-		if p.DecryptedPayload, err = decryptAESCBC(key, buff); err != nil {
+		if p.DecryptedPayload, err = decryptAESECB(key, buff); err != nil {
 			return err
 		}
 	}
@@ -132,6 +131,15 @@ func (p *Packet) decrypt31(key []byte) (err error) {
 func (p *Packet) decrypt35(key []byte) (err error) {
 	if p.DecryptedPayload, err = decryptAESGCM(key, p.IV, p.Tag, p.EncryptedPayload, p.AAD); err != nil {
 		return err
+	}
+
+	p.ReturnCode = binary.BigEndian.Uint32(p.DecryptedPayload[:uint32Size])
+	if p.ReturnCode&0xFFFFFF00 == 0 {
+		p.DeviceOriginated = true
+		if p.CmdId == CmdIdTypeSessKeyNegResult {
+			p.ChecksumLen = hmac32Len
+			p.Checksum = p.DecryptedPayload[uint32Size+NonceLen : uint32Size+NonceLen+hmac32Len]
+		}
 	}
 	return nil
 }
