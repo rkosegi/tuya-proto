@@ -6,7 +6,7 @@
 
 Simple protocol library for Tuya-compatible devices, written in Go.
 
-For now, only very limited subset is implemented, namely version of `3.1` and `3.4`.
+For now, only very limited subset is implemented, partially version of `3.1`, `3.4` and `3.5` are supported.
 
 Tested with few smart plug switches.
 

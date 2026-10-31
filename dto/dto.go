@@ -33,7 +33,7 @@ type DeviceBeacon34 struct {
 	WfCfg bool `json:"wf_cfg"`
 }
 
-type DpsMap map[string]interface{}
+type DpsMap map[string]any
 
 type DpsWrapper struct {
 	DpsMap DpsMap `json:"dps"`
@@ -53,6 +53,9 @@ type DpQueryResponse struct {
 type DpQueryRequest struct {
 	GwId  string `json:"gwId,omitempty"`
 	DevId string `json:"devId,omitempty"`
+	Uid   string `json:"uid,omitempty"`
+	Dps   DpsMap `json:"dps,omitempty"`
+	Time  string `json:"t,omitempty"`
 }
 
 type ProtoStats struct {

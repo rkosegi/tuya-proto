@@ -49,7 +49,7 @@ type clientImpl struct {
 	conn        net.Conn
 	key         []byte
 	origKey     []byte
-	mb          proto.MessageBuilder34
+	mb          proto.MessageBuilder
 	seqNo       atomic.Uint32
 	ver         proto.Version
 	clientNonce []byte
@@ -64,10 +64,11 @@ func (c *clientImpl) afterConnect() error {
 		pkt *proto.Packet
 		err error
 	)
-	if c.ver == proto.Version34 {
+	if c.ver == proto.Version34 || c.ver == proto.Version35 {
+		mb := c.mb.(proto.MessageBuilder34)
 		c.key = c.origKey
 		c.clientNonce = []byte("0123456789abcdef")
-		if pkt, err = c.mb.SessKeyNegStart(c.key, c.clientNonce, c.seqNo.Add(1)); err != nil {
+		if pkt, err = mb.SessKeyNegStart(c.key, c.clientNonce, c.seqNo.Add(1)); err != nil {
 			return err
 		}
 		c.l.Debug("session negotiation step1")
@@ -79,14 +80,14 @@ func (c *clientImpl) afterConnect() error {
 			return err
 		}
 		c.l.Debug("session negotiation step3")
-		c.deviceNonce = pkt.DecryptedPayload[:16]
-		if pkt, err = c.mb.SessKeyNegFinish(c.key, c.deviceNonce, c.seqNo.Add(1)); err != nil {
+		c.deviceNonce = pkt.DecryptedPayload[:proto.NonceLen]
+		if pkt, err = mb.SessKeyNegFinish(c.key, c.deviceNonce, c.seqNo.Add(1)); err != nil {
 			return err
 		}
 		if err = c.sendPacket(pkt); err != nil {
 			return err
 		}
-		if c.key, err = c.mb.MakeSessionKey(c.clientNonce, c.deviceNonce, c.key); err != nil {
+		if c.key, err = mb.MakeSessionKey(c.clientNonce, c.deviceNonce, c.key); err != nil {
 			return err
 		}
 	}
@@ -94,19 +95,11 @@ func (c *clientImpl) afterConnect() error {
 }
 
 func (c *clientImpl) Send(cmd proto.CmdIdType, obj any) error {
-	pkt := &proto.Packet{Version: c.ver}
-	pkt.SeqNo = c.seqNo.Add(1)
-	pkt.CmdId = cmd
-	if str, ok := obj.(string); ok {
-		pkt.DecryptedPayload = []byte(str)
-	} else {
-		pkt.SetJsonPayload(obj)
-	}
-	c.l.Debug("payload to send", "cmdId", pkt.CmdId, "payload", string(pkt.DecryptedPayload))
-	_, err := pkt.Encode(c.key)
+	pkt, err := c.mb.RequestAny(c.key, obj, c.seqNo.Add(1), cmd)
 	if err != nil {
 		return err
 	}
+	c.l.Debug("payload to send", "cmdId", pkt.CmdId, "payload", string(pkt.DecryptedPayload))
 	return c.sendPacket(pkt)
 }
 
@@ -191,7 +184,7 @@ func NewBlockingClient(ver proto.Version, addr string, key []byte, opts ...Opt) 
 		ver:     ver,
 		key:     key,
 		origKey: key,
-		mb:      proto.NewBuilder34(),
+		mb:      proto.NewBuilder(ver),
 	}
 
 	for _, opt := range append([]Opt{
@@ -212,6 +205,7 @@ func NewBlockingClient(ver proto.Version, addr string, key []byte, opts ...Opt) 
 }
 
 func (c *clientImpl) Connect() error {
+	c.l.Debug("connecting", "host", c.host, "port", c.port)
 	conn, err := net.DialTimeout("tcp", net.JoinHostPort(c.host, c.port), c.to)
 	if err != nil {
 		return err
