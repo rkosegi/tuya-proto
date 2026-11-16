@@ -13,7 +13,6 @@
 # limitations under the License.
 ---
 name: CI
-
 on:
   push:
     branches:
@@ -32,6 +31,6 @@ permissions:
 
 jobs:
   ci:
-    uses: rkosegi/github-workflows/.github/workflows/go-ci.yaml@d661ba7e21a03d1bbd016928afe5737df58c8aeb # v0.0.2
+    uses: rkosegi/github-workflows/.github/workflows/go-ci.yaml@6b051e22fcf9056ff77e553d6307a6d9b361b438 # v0.0.7
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
