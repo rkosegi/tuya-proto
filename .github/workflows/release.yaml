@@ -25,4 +25,4 @@ jobs:
   release:
     permissions:
       contents: write
-    uses: rkosegi/github-workflows/.github/workflows/release-on-tag.yaml@6b051e22fcf9056ff77e553d6307a6d9b361b438 # v0.0.7
+    uses: rkosegi/github-workflows/.github/workflows/release-on-tag.yaml@d3985e38f8555b135c8e288a6dd843b5ed955a3b # v0.0.12

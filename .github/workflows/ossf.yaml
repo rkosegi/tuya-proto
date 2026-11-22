@@ -29,4 +29,4 @@ jobs:
     permissions:
       security-events: write
       id-token: write
-    uses: rkosegi/github-workflows/.github/workflows/ossf.yaml@b828e7b08a4400b5187c10b09df7158f0366e5f8 # v0.0.9
+    uses: rkosegi/github-workflows/.github/workflows/ossf.yaml@d3985e38f8555b135c8e288a6dd843b5ed955a3b # v0.0.12

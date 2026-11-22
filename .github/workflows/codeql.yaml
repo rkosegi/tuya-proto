@@ -32,4 +32,4 @@ jobs:
       packages: read
       actions: read
       contents: read
-    uses: rkosegi/github-workflows/.github/workflows/go-codeql.yaml@38c3dff5db0c47194f39855be3236efd2713af59 # v0.0.10
+    uses: rkosegi/github-workflows/.github/workflows/go-codeql.yaml@d3985e38f8555b135c8e288a6dd843b5ed955a3b # v0.0.12
